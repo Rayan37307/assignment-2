@@ -65,6 +65,16 @@ async function main() {
       console.log(`✅ Created build directory at: ${BUILD_DIR}`);
     }
 
+    // Create a shuffled array of hero words to ensure uniqueness
+    let shuffledHeroWords = [...heroOptions];
+    for (let i = shuffledHeroWords.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledHeroWords[i], shuffledHeroWords[j]] = [shuffledHeroWords[j], shuffledHeroWords[i]];
+    }
+    
+    // Counter for assigning unique hero words
+    let heroWordIndex = 0;
+    
     for (const [index, site] of businessData.entries()) {
       // Validate required fields exist for each site
       if (!site.domain || !site.title) {
@@ -88,7 +98,7 @@ async function main() {
         // 1️⃣ Create Vite React app non-interactive
         await execa(
           "npx",
-          ["create-vite@latest", sanitizedDomain, "--template", "react", "--yes"],
+          ["create-vite@latest", sanitizedDomain, "--template", "react", "--no-interactive"],
           { cwd: BUILD_DIR, stdio: "inherit" }
         );
 
@@ -106,8 +116,12 @@ async function main() {
           continue; // Skip this site and continue with the next one
         }
 
-        // Pick a random hero word
-        const randomHeroWord = heroOptions[Math.floor(Math.random() * heroOptions.length)];
+        // Get unique hero word for this site
+        const heroWord = shuffledHeroWords[heroWordIndex % shuffledHeroWords.length];
+        const randomHeroWord = heroWord;
+        
+        // Increment for next site
+        heroWordIndex++;
 
         // Sanitize content to prevent injection issues in generated files
         const safeTitle = site.title.replace(/[<>"'&]/g, (match) => {
@@ -135,7 +149,11 @@ async function main() {
 import React from "react";
 
 export default function Hero() {
-  return <h1>${randomHeroWord} delivery service in dhaka.</h1>;
+  return (
+    <div className="hero">
+      <h2>${randomHeroWord} delivery service in dhaka.</h2>
+    </div>
+  );
 }
 `;
         try {
@@ -151,10 +169,16 @@ import React from "react";
 
 export default function Contact() {
   return (
-    <>
-      <p>Phone: ${safePhone}</p>
-      <p>Address: ${safeAddress}</p>
-    </>
+    <div className="contact">
+      <div className="contact-item">
+        <strong>Phone:</strong> 
+        <span>${safePhone}</span>
+      </div>
+      <div className="contact-item">
+        <strong>Address:</strong> 
+        <span>${safeAddress}</span>
+      </div>
+    </div>
   );
 }
 `;
@@ -170,14 +194,19 @@ export default function Contact() {
 import React from "react";
 import Hero from "./Hero";
 import Contact from "./Contact";
+import './App.css';
 
 export default function App() {
   return (
-    <div>
-      <h1>${safeTitle}</h1>
-      <p>${safeDescription}</p>
-      <Hero />
-      <Contact />
+    <div className="app-container">
+      <header className="app-header">
+        <h1>${safeTitle}</h1>
+        <p>${safeDescription}</p>
+      </header>
+      <main className="app-main">
+        <Hero />
+        <Contact />
+      </main>
     </div>
   );
 }
@@ -186,6 +215,297 @@ export default function App() {
           fs.writeFileSync(path.join(srcDir, "App.jsx"), appJsCode);
         } catch (writeError) {
           console.error(`❌ Error writing App.jsx for ${site.domain}:`, writeError.message);
+          continue; // Skip this site and continue with the next one
+        }
+
+        // 5️⃣ Update App.css with better styling
+        const appCssCode = `
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+  min-height: 100vh;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.app-header h1 {
+  color: #2c3e50;
+  margin: 0 0 0.5rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.app-header p {
+  color: #7f8c8d;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.app-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  width: 100%;
+}
+
+.hero, .contact {
+  flex: 1;
+  min-width: 300px; /* Minimum width before stacking */
+  display: flex;
+  flex-direction: column;
+}
+
+.hero {
+  background: linear-gradient(90deg, #3498db, #2c3e50);
+  color: white;
+  padding: 2rem;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  justify-content: center;
+  word-break: break-word;
+}
+
+.hero h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  word-wrap: break-word;
+}
+
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  word-break: break-word;
+}
+
+.contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contact-item strong {
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.contact-item span {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  padding-left: 0.5rem;
+  word-wrap: break-word;
+}
+
+/* Enhanced Responsive design */
+@media (max-width: 992px) {
+  .app-container {
+    padding: 1.5rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2.2rem;
+  }
+  
+  .hero h2 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    flex-direction: column; /* Stack vertically on smaller screens */
+  }
+  
+  .app-container {
+    padding: 1rem;
+  }
+  
+  .app-header {
+    padding: 1.2rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2rem;
+  }
+  
+  .hero h2 {
+    font-size: 1.6rem;
+  }
+  
+  .contact {
+    padding: 1.5rem;
+  }
+  
+  .contact-item strong,
+  .contact-item span {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .app-container {
+    padding: 0.75rem;
+  }
+  
+  .app-header h1 {
+    font-size: 1.7rem;
+  }
+  
+  .app-header p {
+    font-size: 1rem;
+  }
+  
+  .hero {
+    padding: 1.5rem;
+  }
+  
+  .hero h2 {
+    font-size: 1.4rem;
+  }
+  
+  .contact {
+    padding: 1.2rem;
+  }
+  
+  .contact-item strong,
+  .contact-item span {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 0.5rem;
+  }
+  
+  .app-header {
+    padding: 1rem;
+  }
+  
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .hero {
+    padding: 1.2rem;
+  }
+  
+  .hero h2 {
+    font-size: 1.2rem;
+  }
+  
+  .contact {
+    padding: 1rem;
+  }
+}
+
+/* Additional responsive adjustments for very small screens */
+@media (max-width: 360px) {
+  .app-header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .hero h2 {
+    font-size: 1.1rem;
+  }
+  
+  .app-container {
+    padding: 0.25rem;
+  }
+}
+
+/* Responsive adjustments for larger screens */
+@media (min-width: 1200px) {
+  .app-container {
+    padding: 2.5rem;
+  }
+  
+  .app-header h1 {
+    font-size: 2.8rem;
+  }
+  
+  .hero h2 {
+    font-size: 2.2rem;
+  }
+  
+  .contact {
+    padding: 2.5rem;
+  }
+}
+`;
+
+        try {
+          fs.writeFileSync(path.join(srcDir, "App.css"), appCssCode);
+        } catch (writeError) {
+          console.error(`❌ Error writing App.css for ${site.domain}:`, writeError.message);
+          continue; // Skip this site and continue with the next one
+        }
+
+        // 6️⃣ Update index.css for better base styling
+        const indexCssCode = `
+  :root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: light dark;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #f0f4f8;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    display: flex;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: #f0f4f8;
+  }
+
+  h1,
+  h2 {
+    font-weight: 700;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color: #242424;
+      background-color: #ffffff;
+    }
+    
+    body {
+      background-color: #ffffff;
+    }
+  }
+`;
+
+        try {
+          fs.writeFileSync(path.join(srcDir, "index.css"), indexCssCode);
+        } catch (writeError) {
+          console.error(`❌ Error writing index.css for ${site.domain}:`, writeError.message);
           continue; // Skip this site and continue with the next one
         }
 

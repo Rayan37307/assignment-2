@@ -3,10 +3,16 @@ import React from "react";
 
 export default function Contact() {
   return (
-    <>
-      <p>Phone: 01712345678</p>
-      <p>Address: House 12, Road 5,
-Banani, Dhaka</p>
-    </>
+    <div className="contact">
+      <div className="contact-item">
+        <strong>Phone:</strong> 
+        <span>01712345678</span>
+      </div>
+      <div className="contact-item">
+        <strong>Address:</strong> 
+        <span>House 12, Road 5,
+Banani, Dhaka</span>
+      </div>
+    </div>
   );
 }
